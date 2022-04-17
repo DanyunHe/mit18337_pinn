@@ -12,14 +12,14 @@ ub=[1.]
 # read data
 using MAT
 data=matread("../Data/burgers_shock.mat")
-t=data['tt']
-x=data['x']
-exact=data['uu']
+t=data["t"]  #length 100
+x=data["x"]  #length 256
+exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
 
 #solution data at time n
 idx_t0=10
 idx_t1=90
-data_tn_u=exact[idx_t0:idx_t0+1,:].T
+data_tn_u=exact[:,idx_t0:idx_t0+1]
 #the corresponding locations of the data
 data_tn_x=x
 #number of data point Ndata
@@ -50,7 +50,7 @@ end
 
 function NN_U0(x)
     U1 = NN(x) # q*1
-    U = U1[:, 1:q]
+    U = U1[1:q]
     U_x = ForwardDiff.gradient(NN, x)
     U_xx = ForwardDiff.hessian(NN, x)
     F = -U*U_x + nu*U_xx
@@ -80,8 +80,8 @@ Flux.train!(loss,p,Iterators.repeated(data_tn, iterN), ADAM(0.1))
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
 U1_star=Array{Float64}(undef, N)
 for i in 1:N
-        U1_star[i]=NN_U1(x[i])[p+1]
+        U1_star[i]=NN_U1(x[i])[q+1]
 end
 
 #Error calculation
-error=norm(U1_star.-exact[idx_t1,:])/norm(exact[idx_t1,:])
+error=norm(U1_star.-exact[:,idx_t1])/norm(exact[:,idx_t1])
