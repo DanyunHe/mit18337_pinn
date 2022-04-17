@@ -92,3 +92,7 @@ end
 #Error calculation
 using LinearAlgebra
 error=norm(U1_star.-exact[:,idx_t1])/norm(exact[:,idx_t1])
+
+#plot
+using Plots
+plot(x, [U1_star,exact[:,idx_t1]])
