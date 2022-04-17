@@ -18,7 +18,7 @@ exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
 
 #solution data at time n
 idx_t0=10
-idx_t1=90
+idx_t1=20
 data_tn_u=exact[:,idx_t0]
 #the corresponding locations of the data
 data_tn_x=x
@@ -79,7 +79,7 @@ end
 p=Flux.params(NN)
 
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points for iterN times
-iterN=100
+iterN=1000
 Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM(0.1))
 
 
