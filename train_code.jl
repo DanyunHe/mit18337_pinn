@@ -2,40 +2,40 @@
 #t: 0 to 1; x: -1 to 1
 #initial and boundary conditions
 
-#solution data at time n
-data_tn_u=
-#the corresponding locations of the data
-data_tn_x=
-#number of data point Ndata
-Ndata=
-#timestep size
-dt=
-
-
-# define layers
-q=100
-layers=[1,200,200,200,200,q+1]
+# define layers 
+q=500 # number of stages 
+layers=[1,50,50,50,q+1]
 lb=[-1.]
 ub=[1.]
 
-N=200
-
 # pkg add MAT
-# read data
+# read data 
 using MAT
-data=matread("../Data/AC.nat")
+data=matread("../Data/burgers_shock.mat")
 t=data['tt']
 x=data['x']
 exact=data['uu']
-idx_t0=20
-idx_t1=180
-dt=t[idx_t1]-t[idx_t0]
-
-# inital data
-idx_x=rand(1:N)
 
 #solution data at time n
-data_tn=t
+idx_t0=10
+idx_t1=90
+data_tn_u=exact[idx_t0:idx_t0+1,:].T
+#the corresponding locations of the data
+data_tn_x=x
+#number of data point Ndata
+Ndata=250
+#timestep size
+dt=t[idx_t1]-t[idx_t0]
+#boundary data
+data_tn_x1=[lb,ub]
+
+# load IRK weights 
+# import Pkg
+# Pkg.add("DelimitedFiles")
+using DelimitedFiles
+temp=readdlm("./IRK_weights/Butcher_IRK100.txt");
+IRK_weights=reshape(temp[1:q^2+q],(q+1,q))
+IRK_times=temp[q^2+q:size(temp)[1]]
 
 #Nueral Net of solutions at q stages and at time n+1, LHS of eqn 7
 #input: x vector of length Ndata, output: solutions at locations x.
