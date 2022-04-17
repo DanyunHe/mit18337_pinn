@@ -68,3 +68,6 @@ Flux.train!(loss,p,Iterators.repeated(data_tn, iterN), ADAM(0.1))
 
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
 U1_star=NN_U1(x)[p+1]
+
+#Error calculation
+error=norm(U1_star.-exact[idx_t1,:])/norm(exact[idx_t1,:])
