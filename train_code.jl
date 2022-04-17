@@ -45,16 +45,17 @@ NN = Chain(Dense(layers[1],layers[2],tanh),
 
 function NN_U1(x)
     U1_pred = NN(x)
-    return U1_pred
+    return U1_pred # q*1
 end
 
 function NN_U0(x)
-    U1 = NN(x) # q*1
-    U = U1[1:q]
-    U_x = ForwardDiff.gradient(NN, x)
-    U_xx = ForwardDiff.hessian(NN, x)
-    F = -U*U_x + nu*U_xx
-    U0 = U1 - dt*(F* IRK_weights.T)
+    nu = 0.01/pi 
+    U1 = NN(x) # (q+1)*1
+    U = U1[1:q] # q*1
+    U_x = ForwardDiff.jacobian(NN, x)[1:q]# q*1
+    U_xx = ForwardDiff.jacobian(y -> ForwardDiff.jacobian(NN_U1, y), x)[1:q]# q*1
+    F = -U.*U_x + nu*U_xx # q*1
+    U0 = U1 - dt*(IRK_weights * F)
     return U0
 end
 #Eqn 8, Eqn A.9.
