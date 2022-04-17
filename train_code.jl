@@ -11,7 +11,7 @@ ub=[1.]
 # pkg add MAT
 # read data
 using MAT
-data=matread("../Data/burgers_shock.mat")
+data=matread("./Data/burgers_shock.mat")
 t=data["t"]  #length 100
 x=data["x"]  #length 256
 exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
@@ -23,7 +23,7 @@ data_tn_u=exact[:,idx_t0:idx_t0+1]
 #the corresponding locations of the data
 data_tn_x=x
 #number of data point Ndata
-Ndata=250
+Ndata=256
 #timestep size
 dt=t[idx_t1]-t[idx_t0]
 #boundary data
@@ -39,6 +39,7 @@ IRK_times=temp[q^2+q:size(temp)[1]]
 
 #Nueral Net of solutions at q stages and at time n+1, LHS of eqn 7
 #input: x vector of length Ndata, output: solutions at locations x.
+using Flux
 NN = Chain(Dense(layers[1],layers[2],tanh),
            Dense(layers[3],layers[4],tanh),
            Dense(layers[5],q+1))
@@ -75,7 +76,7 @@ p=params(NN_U1)
 
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points for iterN times
 iterN=1000
-Flux.train!(loss,p,Iterators.repeated(data_tn, iterN), ADAM(0.1))
+Flux.train!(loss,p,Iterators.repeated(data_tn_u, iterN), ADAM(0.1))
 
 
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
