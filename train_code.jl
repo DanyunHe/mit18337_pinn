@@ -80,7 +80,7 @@ p=Flux.params(NN)
 
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points for iterN times
 iterN=1000
-Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM(0.1))
+Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
 
 
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
