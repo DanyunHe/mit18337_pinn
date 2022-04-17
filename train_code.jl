@@ -3,7 +3,7 @@
 #initial and boundary conditions
 
 # define layers
-q=500 # number of stages
+q=100 # number of stages
 layers=[1,50,50,50,q+1]
 lb=[-1.]
 ub=[1.]
@@ -11,7 +11,7 @@ ub=[1.]
 # pkg add MAT
 # read data
 using MAT
-data=matread("./Data/burgers_shock.mat")
+data=matread("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/Data/burgers_shock.mat")
 t=data["t"]  #length 100
 x=data["x"]  #length 256
 exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
@@ -19,7 +19,7 @@ exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
 #solution data at time n
 idx_t0=10
 idx_t1=90
-data_tn_u=exact[:,idx_t0] 
+data_tn_u=exact[:,idx_t0]
 #the corresponding locations of the data
 data_tn_x=x
 #number of data point Ndata
@@ -33,7 +33,7 @@ data_tn_x1=[lb,ub]
 # import Pkg
 # Pkg.add("DelimitedFiles")
 using DelimitedFiles
-temp=readdlm("./IRK_weights/Butcher_IRK500.txt");
+temp=readdlm("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/IRK_weights/Butcher_IRK100.txt");
 IRK_weights=reshape(temp[1:q^2+q],(q+1,q))
 IRK_times=temp[q^2+q:size(temp)[1]]
 
@@ -52,7 +52,7 @@ end
 
 using ForwardDiff
 function NN_U0(x)
-    nu = 0.01/pi 
+    nu = 0.01/pi
     U1 = NN(x) # (q+1)*1
     U = U1[1:q] # q*1
     U_x = ForwardDiff.jacobian(NN, x)[1:q]# q*1
@@ -62,11 +62,10 @@ function NN_U0(x)
     return U0
 end
 #Eqn 8, Eqn A.9.
-function loss(x)
+function loss()
         total_loss=0
         #loop through N data points at time tn, and calculate and add up losses
         for i in 1:Ndata  #time n is t[idx_t0]
-                print(i)
                 #fill an array of length p+1 with value of exact soln at time n
                 exact_tn_array=fill(exact[i,idx_t0], q+1)
                 total_loss=total_loss+sum(abs2,NN_U0([x[i]]).-exact_tn_array)
@@ -80,8 +79,8 @@ end
 p=Flux.params(NN)
 
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points for iterN times
-# iterN=1000
-Flux.train!(loss,p,x, ADAM(0.1))
+iterN=100
+Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM(0.1))
 
 
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
