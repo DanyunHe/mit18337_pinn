@@ -37,29 +37,29 @@ idx_x=rand(1:N)
 #solution data at time n
 data_tn=t
 
-# differential operator
-
-Dx = Differential(x)
-Dxx = Differential(x)^2
+# # differential operator
+# @parameters x
+# Dx = Differential(x)
+# Dxx = Differential(x)^2
 
 #Nueral Net of solutions at q stages and at time n+1, LHS of eqn 7
 #input: x vector of length Ndata, output: solutions at locations x.
-NN = Chain(Dense(1,200,tanh),
-           Dense(200,200,tanh),
-           Dense(200,q+1))
+NN = Chain(Dense(1,50,tanh),
+           Dense(50,50,tanh),
+           Dense(50,q+1))
 
-function NNU1(x)
+function NN_U1(x)
     U1_pred = NN(x)  
-    U1_x_pred = Dx(NN(x))
-    return U1_pred, U1_x_pred
+    # U1_x_pred = Dx(NN(x))
+    return U1_pred# , U1_x_pred
 end
 
-function NNU0(x)
-    U1 = NN(x) 
-    U = U1[:, :-1]
-    U_x = Dx(U)
-    U_xx = Dxx(U)
-    F = 5.0*U - 5.0*U^3 + 0.0001*U_xx
+function NN_U0(x)
+    U1 = NN(x) # q*1
+    U = U1[:, 1:q]
+    U_x = ForwardDiff.gradient(NN, x)
+    U_xx = ForwardDiff.hessian(NN, x)
+    F = -U*U_x + nu*U_xx
     U0 = U1 - dt*(F* IRK_weights.T)
     return U0
 end
