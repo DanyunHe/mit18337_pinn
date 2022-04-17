@@ -12,7 +12,7 @@ Ndata=
 dt=
 
 
-# define layers 
+# define layers
 q=100
 layers=[1,200,200,200,200,q+1]
 lb=[-1.]
@@ -21,7 +21,7 @@ ub=[1.]
 N=200
 
 # pkg add MAT
-# read data 
+# read data
 using MAT
 data=matread("../Data/AC.nat")
 t=data['tt']
@@ -46,8 +46,18 @@ NN_U1 = Chain(Dense(Ndata,200,tanh),
 
 NN_U0 =  #RHS of Eqn 9:RK scheme of NN_U1, and nonlinear operation from specific PDE (above Eqn.(A.9))
 
-loss()= sum(NN_U0(data_tn_x)-data_tn_u)^2) # (NN_U0- data at un (Eqn 8)) (Eqn. A.9.)
-        + sum(NN_U0(-1)^2) +  sum(NN_U0(1)^2)        # + bdry conditions (Eqn A.9.)
+#Eqn 8, Eqn A.9.
+function loss()
+        total_loss=0
+        #loop through N data points at time tn, and calculate and add up losses
+        for i in 1:N  #time n is t[idx_t0]
+                #fill an array of length p+1 with value of exact soln at time n
+                exact_tn_array=fill(exact[idx_t0,i], q+1)
+                total_loss=total_loss+sum(abs2,NN_U0(x[i]).-exact_tn_array)
+        end
+        #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
+        total_loss = total_loss+sum(abs2,NN_U0(-1))+sum(abs2,NN_U0(1))
+end
 
 p=params(NN_U1)
 
