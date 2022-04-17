@@ -39,9 +39,9 @@ data_tn=t
 
 #Nueral Net of solutions at q stages and at time n+1, LHS of eqn 7
 #input: x vector of length Ndata, output: solutions at locations x.
-NN_U1 = Chain(Dense(Ndata,200,tanh),
+NN_U1 = Chain(Dense(1,200,tanh),
            Dense(200,200,tanh),
-           Dense(200,Ndata))
+           Dense(200,q+1))
 
 
 NN_U0 =  #RHS of Eqn 9:RK scheme of NN_U1, and nonlinear operation from specific PDE (above Eqn.(A.9))
