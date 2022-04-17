@@ -1,15 +1,53 @@
+#1D Burger's equation, Eqn (A.1.)
+#t: 0 to 1; x: -1 to 1
+#initial and boundary conditions
 
 #solution data at time n
-data_tn=
+data_tn_u=
+#the corresponding locations of the data
+data_tn_x=
+#number of data point Ndata
+Ndata=
+#timestep size
+dt=
+
+
+# define layers 
+q=100
+layers=[1,200,200,200,200,q+1]
+lb=[-1.]
+ub=[1.]
+
+N=200
+
+# pkg add MAT
+# read data 
+using MAT
+data=matread("../Data/AC.nat")
+t=data['tt']
+x=data['x']
+exact=data['uu']
+idx_t0=20
+idx_t1=180
+dt=t[idx_t1]-t[idx_t0]
+
+# inital data
+idx_x=rand(1:N)
+
+#solution data at time n
+data_tn=t
 
 #Nueral Net of solutions at q stages and at time n+1, LHS of eqn 7
-NN_U1 = Chain(Dense(10,32,tanh),
-           Dense(32,32,tanh),
-           Dense(32,5))
+#input: x vector of length Ndata, output: solutions at locations x.
+NN_U1 = Chain(Dense(Ndata,200,tanh),
+           Dense(200,200,tanh),
+           Dense(200,Ndata))
 
-NN_U0=  #RHS of Eqn 9:RK scheme of NN_U1, and nonlinear operation from specific PDE
 
-loss()= # (NN_U0- data at un (Eqn 8))+ bdry conditions
+NN_U0 =  #RHS of Eqn 9:RK scheme of NN_U1, and nonlinear operation from specific PDE (above Eqn.(A.9))
+
+loss()= sum(NN_U0(data_tn_x)-data_tn_u)^2) # (NN_U0- data at un (Eqn 8)) (Eqn. A.9.)
+        + sum(NN_U0(-1)^2) +  sum(NN_U0(1)^2)        # + bdry conditions (Eqn A.9.)
 
 p=params(NN_U1)
 
