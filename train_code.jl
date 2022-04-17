@@ -2,14 +2,14 @@
 #t: 0 to 1; x: -1 to 1
 #initial and boundary conditions
 
-# define layers 
-q=500 # number of stages 
+# define layers
+q=500 # number of stages
 layers=[1,50,50,50,q+1]
 lb=[-1.]
 ub=[1.]
 
 # pkg add MAT
-# read data 
+# read data
 using MAT
 data=matread("../Data/burgers_shock.mat")
 t=data['tt']
@@ -29,22 +29,22 @@ dt=t[idx_t1]-t[idx_t0]
 #boundary data
 data_tn_x1=[lb,ub]
 
-# load IRK weights 
+# load IRK weights
 # import Pkg
 # Pkg.add("DelimitedFiles")
 using DelimitedFiles
-temp=readdlm("./IRK_weights/Butcher_IRK100.txt");
+temp=readdlm("./IRK_weights/Butcher_IRK500.txt");
 IRK_weights=reshape(temp[1:q^2+q],(q+1,q))
 IRK_times=temp[q^2+q:size(temp)[1]]
 
 #Nueral Net of solutions at q stages and at time n+1, LHS of eqn 7
 #input: x vector of length Ndata, output: solutions at locations x.
-NN = Chain(Dense(1,50,tanh),
-           Dense(50,50,tanh),
-           Dense(50,q+1))
+NN = Chain(Dense(layers[1],layers[2],tanh),
+           Dense(layers[3],layers[4],tanh),
+           Dense(layers[5],q+1))
 
 function NN_U1(x)
-    U1_pred = NN(x)  
+    U1_pred = NN(x)
     return U1_pred
 end
 
