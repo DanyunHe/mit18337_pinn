@@ -19,7 +19,7 @@ exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
 #solution data at time n
 idx_t0=10
 idx_t1=90
-data_tn_u=exact[:,idx_t0:idx_t0+1]
+data_tn_u=exact[:,idx_t0] 
 #the corresponding locations of the data
 data_tn_x=x
 #number of data point Ndata
@@ -41,14 +41,16 @@ IRK_times=temp[q^2+q:size(temp)[1]]
 #input: x vector of length Ndata, output: solutions at locations x.
 using Flux
 NN = Chain(Dense(layers[1],layers[2],tanh),
+           Dense(layers[2],layers[3],tanh),
            Dense(layers[3],layers[4],tanh),
-           Dense(layers[5],q+1))
+           Dense(layers[4],layers[5]))
 
 function NN_U1(x)
     U1_pred = NN(x)
     return U1_pred # q*1
 end
 
+using ForwardDiff
 function NN_U0(x)
     nu = 0.01/pi 
     U1 = NN(x) # (q+1)*1
@@ -60,23 +62,26 @@ function NN_U0(x)
     return U0
 end
 #Eqn 8, Eqn A.9.
-function loss()
+function loss(x)
         total_loss=0
         #loop through N data points at time tn, and calculate and add up losses
-        for i in 1:N  #time n is t[idx_t0]
+        for i in 1:Ndata  #time n is t[idx_t0]
+                print(i)
                 #fill an array of length p+1 with value of exact soln at time n
-                exact_tn_array=fill(exact[idx_t0,i], q+1)
-                total_loss=total_loss+sum(abs2,NN_U0(x[i]).-exact_tn_array)
+                exact_tn_array=fill(exact[i,idx_t0], q+1)
+                total_loss=total_loss+sum(abs2,NN_U0([x[i]]).-exact_tn_array)
         end
+
         #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
-        total_loss = total_loss+sum(abs2,NN_U0(-1))+sum(abs2,NN_U0(1))
+        total_loss = total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
+        return total_loss
 end
 
-p=params(NN_U1)
+p=Flux.params(NN)
 
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points for iterN times
-iterN=1000
-Flux.train!(loss,p,Iterators.repeated(data_tn_u, iterN), ADAM(0.1))
+# iterN=1000
+Flux.train!(loss,p,x, ADAM(0.1))
 
 
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
