@@ -11,7 +11,9 @@ ub=[1.]
 # pkg add MAT
 # read data
 using MAT
-data=matread("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/Data/burgers_shock.mat")
+#data=matread("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/Data/burgers_shock.mat")
+data=matread("./Data/burgers_shock.mat")
+pwd()
 t=data["t"]  #length 100
 x=data["x"]  #length 256
 exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
@@ -47,7 +49,8 @@ data_tn_x1=[lb,ub]
 # import Pkg
 # Pkg.add("DelimitedFiles")
 using DelimitedFiles
-temp=readdlm("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/IRK_weights/Butcher_IRK100.txt");
+#temp=readdlm("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/IRK_weights/Butcher_IRK100.txt");
+data=matread("./Data/burgers_shock.mat")
 IRK_weights=reshape(temp[1:q^2+q],(q+1,q))
 IRK_times=temp[q^2+q:size(temp)[1]]
 
@@ -113,7 +116,7 @@ end
 
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
 U1_star=Array{Float64}(undef, total_data_size)
-for i in 1:Ndata
+for i in 1:total_data_size
         U1_star[i]=NN_U1([x[i]])[q+1]
 end
 
