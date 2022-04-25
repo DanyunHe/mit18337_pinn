@@ -91,9 +91,9 @@ function loss()
         #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
         total_loss = total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
         sample_total_loss/=Ndata
-        sample_total_loss=(sample_total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.])))/(Msample+2) # take  average 
+        # sample_total_loss=(sample_total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.])))/(Msample+2) # take  average 
 
-        return sample_total_loss
+        return total_loss
 end
 
 p=Flux.params(NN)
@@ -116,3 +116,5 @@ error=norm(U1_star.-exact[:,idx_t1])/norm(exact[:,idx_t1])
 #plot
 using Plots
 plot(x, [U1_star,exact[:,idx_t1]])
+
+

@@ -48,9 +48,9 @@ data_tn_x1=[lb,ub]
 # load IRK weights
 # import Pkg
 # Pkg.add("DelimitedFiles")
-using DelimitedFiles
 #temp=readdlm("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/IRK_weights/Butcher_IRK100.txt");
-data=matread("./Data/burgers_shock.mat")
+using DelimitedFiles
+temp=readdlm("./IRK_weights/Butcher_IRK100.txt");
 IRK_weights=reshape(temp[1:q^2+q],(q+1,q))
 IRK_times=temp[q^2+q:size(temp)[1]]
 
@@ -98,6 +98,8 @@ p=Flux.params(NN)
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
 #each big iteration have iterN=100 training iterations.
 #The big iteration stops once MSE is smaller than a threshold
+
+
 MSE_train_stop_threshold=0.1
 loss_array = Vector{Float64}()
 iteration_array = Vector{Int32}()
@@ -105,14 +107,15 @@ MSE=loss()/(Ndata+2)
 iterN=100
 iteri=0
 while(MSE>MSE_train_stop_threshold)
-        iteri=iteri+1
+        global iteri=iteri+1
         Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
         current_loss=loss()
-        MSE=current_loss/(Ndata+2)
+        global MSE=current_loss/(Ndata+2)
         append!(loss_array,current_loss)
         append!(iteration_array,iterN*iteri)
 end
 
+# Flux.train!(loss,p,Iterators.repeated((), 100), ADAM())
 
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
 U1_star=Array{Float64}(undef, total_data_size)
