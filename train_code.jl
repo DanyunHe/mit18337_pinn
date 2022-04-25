@@ -107,10 +107,10 @@ MSE=loss()/(Ndata+2)
 iterN=100
 iteri=0
 while(MSE>MSE_train_stop_threshold)
-        iteri=iteri+1
+        global iteri=iteri+1
         Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
         current_loss=loss()
-        MSE=current_loss/(Ndata+2)
+        global MSE=current_loss/(Ndata+2)
         append!(loss_array,current_loss)
         append!(iteration_array,iterN*iteri)
 end
