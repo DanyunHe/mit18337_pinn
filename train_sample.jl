@@ -84,37 +84,17 @@ end
 # sample_weight=zeros(Ndata)
 function loss()
         total_loss=0
-        # sample_weight=zeros(Ndata)
-        sample_loss=zeros(Ndata)
+
         #loop through N data points at time tn, and calculate and add up losses
         for i in 1:Ndata  #time n is t[idx_t0]
                 #fill an array of length p+1 with value of exact soln at time n
                 exact_tn_array=fill(data_tn_x[i], q+1)
                 temp=sum(abs2,NN_U0([data_tn_x[i]]).-exact_tn_array)
-                # sample_weight[i]=temp
                 total_loss=total_loss+temp
         end
 
-        # sample_weight/=total_loss
-
-        #sample a minibatch
-        # sample_data=rand(Multinomial(Msample,sample_weight))
-        # println(sample_data)
-        # println(sample_weight)
-
-        #=
-        sample_total_loss=0
-        for j in 1:Ndata
-            exact_tn_array=fill(data_tn_x[j], q+1)
-            temp=sum(abs2,NN_U0([data_tn_x[j]]).-exact_tn_array)
-            # sample_total_loss+=sample_data[j]*sample_loss[j]/sample_weight[j]
-            sample_total_loss+=sample_data[j]*temp/sample_weight[j]
-        end
-=#
         #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
         total_loss = total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
-        # sample_total_loss/=Ndata
-        # sample_total_loss=(sample_total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.])))/(Msample+2) # take  average 
 
         return total_loss
 end
@@ -129,7 +109,6 @@ function sample_loss()
         for j in 1:Ndata
                 exact_tn_array=fill(data_tn_x[j], q+1)
                 temp=sum(abs2,NN_U0([data_tn_x[j]]).-exact_tn_array)
-                # sample_total_loss+=sample_data[j]*sample_loss[j]/sample_weight[j]
                 sample_total_loss+=sample_data[j]*temp/sample_weight[j]
         end
         sample_total_loss=sample_total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
@@ -144,32 +123,31 @@ p=Flux.params(NN)
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
 #each big iteration have iterN=100 training iterations.
 #The big iteration stops once MSE is smaller than a threshold
-#=
+
 MSE_train_stop_threshold=0.1
 loss_array = Vector{Float64}()
 iteration_array = Vector{Int32}()
 MSE=loss()/(Ndata+2)
 iterN=100
 iteri=0
+
+Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
 while(MSE>MSE_train_stop_threshold)
         iteri=iteri+1
-        Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
-        current_loss=loss()
-        MSE=current_loss/(Ndata+2)
-        append!(loss_array,current_loss)
-        append!(iteration_array,iterN*iteri)
-end
-=#
-Flux.train!(loss,p,Iterators.repeated((), 100), ADAM())
-for j in 1:5  
         for i in 1:Ndata
                 exact_tn_array=fill(data_tn_x[i], q+1)
                 global sample_weight[i]=sum(abs2,NN_U0([data_tn_x[i]]).-exact_tn_array)
         end
         global sample_weight/=sum(sample_weight)
         global sample_data=rand(Multinomial(Msample,sample_weight))
-        Flux.train!(sample_loss,p,Iterators.repeated((), 100), ADAM())
+        Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM())
+        # Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
+        current_loss=loss()
+        MSE=current_loss/(Ndata+2)
+        append!(loss_array,current_loss)
+        append!(iteration_array,iterN*iteri)
 end
+
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
 U1_star=Array{Float64}(undef, total_data_size)
 for i in 1:total_data_size
