@@ -186,4 +186,4 @@ println("Final time $finaltime relative L2 error $error")
 using Plots
 # plot(iteration_array, loss_array, xlabel="iteration", ylabel="PINN SSE loss")
 # plot(iteration_array, loss_array./(Ndata+2), xlabel="iteration", ylabel="PINN MSE loss")
-# plot(x, [U1_star,exact[:,idx_t1]], labels=["predicted soln at final time" "exact solution"],  xlabel="x",ylabel="soln",title="at final time $finaltime")
+plot(x, [U1_star,exact[:,idx_t1]], labels=["predicted soln at final time" "exact solution"],  xlabel="x",ylabel="soln",title="at final time $finaltime")
