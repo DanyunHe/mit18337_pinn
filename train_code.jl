@@ -116,6 +116,11 @@ append!(loss_array,current_loss_0)
 append!(MSE_array,MSE_0)
 append!(iteration_array,0)
 
+open("PINN_iter_loss_MSE.txt", "a") do file
+    println(file, "0 $current_loss_0 $MSE_0 ")
+    flush(file)
+end
+
 for iteri in 1:number_big_step
         Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
 
