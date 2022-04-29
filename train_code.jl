@@ -116,7 +116,8 @@ append!(loss_array,current_loss_0)
 append!(MSE_array,MSE_0)
 append!(iteration_array,0)
 
-open("PINN_iter_loss_MSE.txt", "a") do file
+@save "./output_xx/PINN_NN_model_0" NN
+open("./output_xx/PINN_iter_loss_MSE.txt", "a") do file
     println(file, "0 $current_loss_0 $MSE_0 ")
     flush(file)
 end
@@ -126,7 +127,7 @@ for iteri in 1:number_big_step
 
         #save model parameters
         total_iteration_i=iteri*iterN
-        @save "PINN_NN_model_$(total_iteration_i)" NN
+        @save "./output_xx/PINN_NN_model_$(total_iteration_i)" NN
 
         #compute and save loss function value, MSE value
         current_loss_i=loss()
@@ -135,7 +136,7 @@ for iteri in 1:number_big_step
         append!(MSE_array,MSE_i)
         append!(iteration_array,total_iteration_i)
 
-        open("PINN_iter_loss_MSE.txt", "a") do file
+        open("./output_xx/PINN_iter_loss_MSE.txt", "a") do file
             println(file, "$total_iteration_i $current_loss_i $MSE_i ")
             flush(file)
         end
@@ -152,7 +153,7 @@ finaltime=t[idx_t1]
 error=norm(U1_star.-exact[:,idx_t1])/norm(exact[:,idx_t1])
 println("Final time $finaltime relative L2 error $error")
 #save error to file
-open("PINN_error.txt", "a") do file
+open("./output_xx/PINN_error.txt", "a") do file
     println(file, "$error ")
     flush(file)
 end
