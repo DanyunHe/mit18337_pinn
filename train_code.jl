@@ -108,7 +108,7 @@ end
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
 #total number of iterations of training: 20000
 #Save model parameters and loss value and predicted solution error every 100 iterations
-total_iteration=20000
+total_iteration=10000
 iterN=100
 number_big_step=total_iteration/iterN
 
