@@ -11,6 +11,13 @@ using Plots
 using BSON
 
 
+using DiffEqFlux
+using Optim
+
+using Zygote
+using FluxOptTools
+using Statistics
+
 # define layers
 q=100 # number of stages
 layers=[1,50,50,50,q+1]   #4 layers, 50 neuron/layer
@@ -97,7 +104,6 @@ function loss()
         return total_loss
 end
 
-p=Flux.params(NN)
 
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
 #total number of iterations of training: 20000
@@ -123,7 +129,16 @@ open("./output_xx/PINN_iter_loss_MSE.txt", "a") do file
 end
 
 for iteri in 1:number_big_step
-        Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
+        Zygote.refresh()
+        p=Flux.params(NN)
+
+        #the first 100 iterations, use ADAM() to train the model
+        if iteri==1
+                Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
+        else #then, use BFGS() to train the model
+                lossfun, gradfun, fg!, p0 = optfuns(loss, p)
+                res = Optim.optimize(Optim.only_fg!(fg!), p0, BFGS(), Optim.Options(iterations=iterN))
+        end
 
         #save model parameters
         total_iteration_i=iteri*iterN
