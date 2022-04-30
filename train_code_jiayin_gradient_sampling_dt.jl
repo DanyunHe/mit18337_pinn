@@ -12,6 +12,12 @@ using BSON: @save
 using BSON: @load
 using Distributions
 
+using DiffEqFlux
+using Optim
+
+using Zygote
+using FluxOptTools
+using Statistics
 # read data
 data=matread("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/Data/burgers_shock.mat")
 #data=matread("./Data/burgers_shock.mat")
@@ -98,6 +104,11 @@ for stepi in 1:dt_steps
                         data_tn_x[i]=read_data_tn_x[sample_data_location_index[i]]
                         data_tn_u[i]=read_data_tn_u[sample_data_location_index[i]]
                 end
+
+                open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_sample_x_u_uniform_sampling_$(q)_$(dt)_$(stepi)_jiayin.txt", "a") do file
+                    writedlm(file, [data_tn_x data_tn_u], ',')
+                    flush(file)
+                end
         else
                 #random array of unique locations in between -1 and 1
                 rand_array=rand(Uniform(-1,1),Ndata*10)
@@ -124,6 +135,11 @@ for stepi in 1:dt_steps
                         data_tn_x[i]=rand_array[sample_data_location_index[i]]
                         data_tn_u[i]=rand_array_u[sample_data_location_index[i]]
                 end
+
+                open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_sample_x_u_uniform_sampling_$(q)_$(dt)_$(stepi)_jiayin.txt", "a") do file
+                    writedlm(file, [data_tn_x data_tn_u], ',')
+                    flush(file)
+                end
         end
 
         #Eqn 8, Eqn A.9.
@@ -141,12 +157,10 @@ for stepi in 1:dt_steps
                 return total_loss
         end
 
-        p=Flux.params(NN)
-
         #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
         #total number of iterations of training: 20000
         #Save model parameters and loss value and predicted solution error every 100 iterations
-        total_iteration=200   #20000
+        total_iteration=10000   #20000
         iterN=100
         number_big_step=total_iteration/iterN
 
@@ -160,19 +174,29 @@ for stepi in 1:dt_steps
         append!(MSE_array,MSE_0)
         append!(iteration_array,0)
 
-        @save "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_uniform_sampling_$(q)_$(dt)_$(stepi)_0_jiayin" NN
-        open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_iter_loss_MSE_uniform_sampling_$(q)_$(dt)_$(stepi)_jiayin.txt", "a") do file
+        @save "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_gradient_sampling_$(q)_$(dt)_$(stepi)_0_jiayin" NN
+        open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_iter_loss_MSE_gradient_sampling_$(q)_$(dt)_$(stepi)_jiayin.txt", "a") do file
             println(file, "0 $current_loss_0 $MSE_0 ")
             flush(file)
         end
 
 
         for iteri in 1:number_big_step
-                Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
+
+                Zygote.refresh()
+                p=Flux.params(NN)
+
+                #the first 100 iterations, use ADAM() to train the model
+                if iteri==1
+                        Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
+                else #then use BFGS() to train the model
+                        lossfun, gradfun, fg!, p0 = optfuns(loss, p)
+                        res = Optim.optimize(Optim.only_fg!(fg!), p0, BFGS(), Optim.Options(iterations=iterN))
+                end
 
                 #save model parameters
                 total_iteration_i=Int32(iteri*iterN)
-                @save "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_uniform_sampling_$(q)_$(dt)_$(stepi)_$(total_iteration_i)_jiayin" NN
+                @save "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_gradient_sampling_$(q)_$(dt)_$(stepi)_$(total_iteration_i)_jiayin" NN
 
                 #compute and save loss function value, MSE value
                 current_loss_i=loss()
@@ -181,7 +205,7 @@ for stepi in 1:dt_steps
                 append!(MSE_array,MSE_i)
                 append!(iteration_array,total_iteration_i)
 
-                open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_iter_loss_MSE_uniform_sampling_$(q)_$(dt)_$(stepi)_jiayin.txt", "a") do file
+                open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_iter_loss_MSE_gradient_sampling_$(q)_$(dt)_$(stepi)_jiayin.txt", "a") do file
                     println(file, "$total_iteration_i $current_loss_i $MSE_i ")
                     flush(file)
                 end
@@ -204,7 +228,7 @@ finaltime=t[idx_tf]
 error=norm(U1_star.-exact[:,idx_tf])/norm(exact[:,idx_tf])
 println("Final time $finaltime relative L2 error $error")
 #save error to file
-open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_error_sampling_uniform_jiayin.txt", "a") do file
+open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_error_gradient_sampling_jiayin.txt", "a") do file
     println(file, "$q $dt $finaltime $error ")
     flush(file)
 end

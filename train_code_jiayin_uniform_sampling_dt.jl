@@ -12,6 +12,14 @@ using BSON: @save
 using BSON: @load
 using Distributions
 
+
+using DiffEqFlux
+using Optim
+
+using Zygote
+using FluxOptTools
+using Statistics
+
 # read data
 data=matread("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/Data/burgers_shock.mat")
 #data=matread("./Data/burgers_shock.mat")
@@ -97,6 +105,11 @@ for stepi in 1:dt_steps
                         data_tn_x[i]=read_data_tn_x[sample_data_location_index[i]]
                         data_tn_u[i]=read_data_tn_u[sample_data_location_index[i]]
                 end
+
+                open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_sample_x_u_uniform_sampling_$(q)_$(dt)_$(stepi)_jiayin.txt", "a") do file
+                    writedlm(file, [data_tn_x data_tn_u], ',')
+                    flush(file)
+                end
         else
                 rand_array=rand(Uniform(-1,1),Ndata+100)
                 sort!(rand_array)
@@ -106,6 +119,11 @@ for stepi in 1:dt_steps
                 for i in 1:Ndata
                         data_tn_x[i]=rand_array[sample_data_location_index[i]]
                         data_tn_u[i]=NN_U1([data_tn_x[i]])[q+1]
+                end
+
+                open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_sample_x_u_uniform_sampling_$(q)_$(dt)_$(stepi)_jiayin.txt", "a") do file
+                    writedlm(file, [data_tn_x data_tn_u], ',')
+                    flush(file)
                 end
         end
 
@@ -124,12 +142,11 @@ for stepi in 1:dt_steps
                 return total_loss
         end
 
-        p=Flux.params(NN)
 
         #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
         #total number of iterations of training: 20000
         #Save model parameters and loss value and predicted solution error every 100 iterations
-        total_iteration=200   #20000
+        total_iteration=10000   #20000
         iterN=100
         number_big_step=total_iteration/iterN
 
@@ -151,7 +168,17 @@ for stepi in 1:dt_steps
 
 
         for iteri in 1:number_big_step
-                Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
+
+                Zygote.refresh()
+                p=Flux.params(NN)
+
+                #the first 100 iterations, use ADAM() to train the model
+                if iteri==1
+                        Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
+                else #then, use BFGS() to train the model
+                        lossfun, gradfun, fg!, p0 = optfuns(loss, p)
+                        res = Optim.optimize(Optim.only_fg!(fg!), p0, BFGS(), Optim.Options(iterations=iterN))
+                end
 
                 #save model parameters
                 total_iteration_i=Int32(iteri*iterN)
