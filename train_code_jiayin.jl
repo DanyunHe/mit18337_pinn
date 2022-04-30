@@ -26,9 +26,6 @@ q_list=[100,32,4,2,1] #5 stages
 #list of dt's
 dt_list=[0.1,0.2,0.4] #3 dt's
 
-qi=1
-dti=1
-
 for qi in 1:5
         for dti in 1:3
 
