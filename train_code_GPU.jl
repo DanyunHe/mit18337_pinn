@@ -45,52 +45,63 @@ NN = Chain(Dense(layers[1],layers[2],tanh),
            Dense(layers[2],layers[3],tanh),
            Dense(layers[3],layers[4],tanh),
            Dense(layers[4],layers[5])) |> gpu;
-NN = fmap(cu, NN)
+# NN = fmap(cu, NN)
 
 function NN_U1(x)
-    U1_pred = NN(x |> gpu)
-    return U1_pred # q*1
+    N = size(x)[1]
+    x_reshaped = reshape(x, 1, 1, N)
+    U1_pred = NN(x_reshaped |> gpu)
+    return reshape(U1_pred, q+1, N) # (q+1)*N
 end |> gpu;
 
 function NN_U0(x)
     N = size(x)[1]
     x_reshaped = reshape(x, 1, 1, N)
+    x_nested = [[x[i]] for i in 1:N]
     nu = 0.01/pi
     U1 = reshape(NN(x_reshaped |> gpu), q+1, N) # (q+1)*N
     U = U1[1:q, :] # q*N
-    U_x_unshaped = ForwardDiff.jacobian(NN |> gpu, x_reshaped |> gpu) 
-    U_x = reshape(filter(!iszero, U_x_unshaped), q+1, N)[1:q, :] # q*N
-    U_xx = cu(zeros(q, N))
-    for i in 1:N
-        U_xx[:, i] = cu(ForwardDiff.jacobian(y -> ForwardDiff.jacobian(NN_U1,y), [x[i]])[1:q])# q*1
-    end
+    # U_x_unshaped = ForwardDiff.jacobian(NN |> gpu, x_reshaped |> gpu) 
+    # U_x = reshape(filter(!iszero |> gpu, U_x_unshaped |> gpu), q+1, N)[1:q, :] # q*N
+    U_x_unshaped = ForwardDiff.jacobian.(NN_U1|>gpu , x_nested |> gpu)  
+    U_x = reduce(vcat,transpose.(U_x_unshaped))
+    # U_x = cu(reshape(collect(Iterators.flatten(U_x_unshaped)), (length(U_x_unshaped[1]),length(U_x_unshaped)))[1:q, :]); # q*N
+    # U_xx = CUDA.zeros(q, N)
+    # U_x = CUDA.zeros(q, N)
+    # U_x  = ForwardDiff.jacobian(NN_U1 |> gpu, [x[1]] |> gpu)[1:q]
+    # U_xx  = ForwardDiff.jacobian(y -> ForwardDiff.jacobian(NN_U1, y), [x[1]] )[1:q]
+    # for i in 1:N
+    #     # U_x = hcat(U_x , ForwardDiff.jacobian(NN_U1 |> gpu, [x[i]] |> gpu)[1:q])
+    #     # U_xx = hcat(U_xx , ForwardDiff.jacobian(y -> ForwardDiff.jacobian(NN_U1, y), [x[i]] )[1:q])
+    #     # U_x[:, i] = ForwardDiff.jacobian(NN_U1 |> gpu, [x[i]] |> gpu)[1:q]
+    #     U_xx[:, i] = ForwardDiff.jacobian(y -> ForwardDiff.jacobian(NN_U1, y), [x[i]] )[1:q]# q*1
+    # end
+    hessian = ForwardDiff.jacobian.(y -> ForwardDiff.jacobian(NN_U1, y), x_nested);
+    U_xx = reduce(vcat,transpose.(hessian))
+    # U_xx = cu(reshape(collect(Iterators.flatten(hessian)), (length(hessian[1]),length(hessian)))[1:q, :]) # q*N
+
     F = -U.*U_x + nu*U_xx # q*N
     U0 = U1 - dt*(IRK_weights * F) #(q+1)*N
     return U0
 end |> gpu;
 
-NN_U0 = fmap(cu, NN_U0)
-# Flux.Zygote.@nograd Flux.params
 #Eqn 8, Eqn A.9.
 function loss()
         total_loss=0 
         #loop through N data points at time tn, and calculate and add up losses
         for i in 1:Ndata  #time n is t[idx_t0]
-            #fill an array of length p+1 with value of exact soln at time n
-            # exact_tn_array=fill(exact[i,idx_t0], q+1) |> gpu;
-            # total_loss=total_loss+sum(abs2,NN_U0([x[i]] |> gpu).-exact_tn_array)
-            total_loss=total_loss+sum(abs2,reshape(NN_U0([x[i]] |> gpu), 1, q+1).-exact[i,idx_t0])
-            # total_loss=total_loss+sum(abs2,NN_U0([x[i] |> gpu]).-fill(exact[i,idx_t0], q+1))
+            #fill an array of length q+1 with value of exact soln at time n
+            total_loss=total_loss+sum(abs2,transpose(NN_U0([x[i]] |> gpu)).-exact[i,idx_t0])
         end
 
         #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
-        total_loss = total_loss / Ndata +sum(abs2,NN_U0([-1.]|> gpu))+sum(abs2,NN_U0([1.] |> gpu))
+        total_loss = total_loss +sum(abs2,NN_U0([-1.]|> gpu))+sum(abs2,NN_U0([1.] |> gpu))
         return total_loss
 end |> gpu;
 
 function loss_tzy()
-    nn_pred =  reshape(NN_U0(x |> gpu), Ndata, q+1);
-    total_loss = sum(abs2, (nn_pred .-exact[:,idx_t0]))/Ndata + sum(abs2,NN_U0([-1.]|> gpu))+sum(abs2,NN_U0([1.] |> gpu))
+    nn_pred =  transpose(NN_U0(x |> gpu)) |> gpu;
+    total_loss = sum((nn_pred .-exact[:,idx_t0]).^2)+ sum(NN_U0([-1.]|> gpu).^2)+sum(NN_U0([1.] |> gpu).^2)
     return total_loss
 end |> gpu;
 
@@ -98,7 +109,7 @@ p=Flux.params(NN);
 
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points for iterN times
 iterN=1000
-benchmark_record = @benchmark Flux.train!(loss_tzy,p,Iterators.repeated((), iterN), ADAM())
+benchmark_record = @benchmark Flux.train!(loss_tzy, p, Iterators.repeated((), iterN), ADAM())
 
 # @epochs 2 Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
 open("time_records.txt", "a") do io
