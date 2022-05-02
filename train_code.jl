@@ -97,8 +97,8 @@ function loss()
         #loop through N data points at time tn, and calculate and add up losses
         for i in 1:Ndata  #time n is t[idx_t0]
                 #fill an array of length p+1 with value of exact soln at time n
-                exact_tn_array=fill(data_tn_u[i], q+1)
-                total_loss=total_loss+sum(abs2,NN_U0([data_tn_x[i]]).-exact_tn_array)
+                # exact_tn_array=fill(data_tn_u[i], q+1)
+                total_loss=total_loss+sum(abs2,NN_U0([data_tn_x[i]]).-data_tn_u[i])
         end
 
         #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
@@ -124,18 +124,19 @@ append!(loss_array,current_loss_0)
 append!(MSE_array,MSE_0)
 append!(iteration_array,0)
 
+#=
 @save "./output_xx/PINN_NN_model_0" NN
 open("./output_xx/PINN_iter_loss_MSE.txt", "a") do file
     println(file, "0 $current_loss_0 $MSE_0 ")
     flush(file)
 end
-
+=#
 for iteri in 1:number_big_step
         Zygote.refresh()
         p=Flux.params(NN)
 
         #the first 100 iterations, use ADAM() to train the model
-        if iteri==1
+        if iteri<10
                 Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
         else #then, use BFGS() to train the model
                 lossfun, gradfun, fg!, p0 = optfuns(loss, p)
@@ -144,7 +145,7 @@ for iteri in 1:number_big_step
 
         #save model parameters
         total_iteration_i=iteri*iterN
-        @save "./output_xx/PINN_NN_model_$(total_iteration_i)" NN
+        # @save "./output_xx/PINN_NN_model_$(total_iteration_i)" NN
 
         #compute and save loss function value, MSE value
         current_loss_i=loss()
