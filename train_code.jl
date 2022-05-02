@@ -64,8 +64,10 @@ data_tn_x1=[lb,ub]
 # Pkg.add("DelimitedFiles")
 #temp=readdlm("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/IRK_weights/Butcher_IRK100.txt");
 temp=readdlm("./IRK_weights/Butcher_IRK$q.txt");
-IRK_weights=reshape(temp[1:q^2+q],(q+1,q))
+IRK_weights=reshape(temp[1:q^2+q],(q,q+1))
+IRK_weights=IRK_weights'
 IRK_times=temp[q^2+q:size(temp)[1]]
+
 
 #Nueral Net of solutions at q stages and at time n+1, LHS of eqn 7
 #input: x vector of length Ndata, output: solutions at locations x.

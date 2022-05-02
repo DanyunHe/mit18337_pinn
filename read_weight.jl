@@ -2,7 +2,25 @@
 # import Pkg
 # Pkg.add("DelimitedFiles")
 using DelimitedFiles
-q=100
-temp=readdlm("./IRK_weights/Butcher_IRK100.txt");
-IRK_weights=reshape(temp[1:q^2+q],(q+1,q))
+q=2
+temp=readdlm("./IRK_weights/Butcher_IRK2.txt");
+IRK_weights=reshape(temp[1:q^2+q],(q,q+1))
+IRK_weights=IRK_weights'
 IRK_times=temp[q^2+q:size(temp)[1]]
+# print(IRK_weights[1,:10])
+
+#=
+0.00018365862262641793
+ 0.0004273481633795263
+ 0.0006709813428883707
+ 0.0009139903003315938
+ 0.0011561125158555299
+ 0.0013971070009663787
+ 0.0016367371127113306
+ 0.0018747683138661778
+ 0.0021109678674172427
+ 0.0023451049134236143
+
+ 1.8365862e-04 -7.0015689e-05  5.3853535e-05 -4.5579487e-05
+  4.0256728e-05 -3.6438909e-05  3.3515738e-05 -3.1176689e-05
+  2.9244171e-05 -2.7608075e-05=#
