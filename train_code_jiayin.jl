@@ -34,8 +34,8 @@ q_list=[100,32,4,2,1] #5 stages
 #list of dt's
 dt_list=[0.1,0.2,0.4] #3 dt's
 
-for qi in 1:5
-        for dti in 1:3
+for qi in 1:1
+        for dti in 2:2
 
                 # number of stages
                 q=q_list[qi]
@@ -57,7 +57,8 @@ for qi in 1:5
 
                 # load IRK weights
                 temp=readdlm("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/IRK_weights/Butcher_IRK$q.txt");
-                IRK_weights=reshape(temp[1:q^2+q],(q+1,q))
+                IRK_weights=reshape(temp[1:q^2+q],(q,q+1))
+                IRK_weights=IRK_weights'
                 IRK_times=temp[q^2+q:size(temp)[1]]
 
                 #read in full data at time t0
@@ -87,7 +88,7 @@ for qi in 1:5
 
 
                 #test loading
-                #@load "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_$(q)_$(dt)_0_jiayin" NN
+                @load "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_100_0.2_900.0_jiayin" NN
 
 
                 function NN_U1(x)
@@ -111,7 +112,7 @@ for qi in 1:5
                         #loop through N data points at time tn, and calculate and add up losses
                         for i in 1:Ndata  #time n is t[idx_t0]
                                 #fill an array of length p+1 with value of exact soln at time n
-                                exact_tn_array=fill(data_tn_x[i], q+1)
+                                exact_tn_array=fill(data_tn_u[i], q+1)
                                 total_loss=total_loss+sum(abs2,NN_U0([data_tn_x[i]]).-exact_tn_array)
                         end
 
@@ -144,12 +145,12 @@ for qi in 1:5
                 end
 
 
-                for iteri in 1:number_big_step
+                for iteri in 10:number_big_step #1:number_big_step
                         Zygote.refresh()
                         p=Flux.params(NN)
 
                         #the first 100 iterations, use ADAM() to train the model
-                        if iteri==1
+                        if iteri<10
                                 Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
                         else #then, use BFGS() to train the model
                                 lossfun, gradfun, fg!, p0 = optfuns(loss, p)
@@ -192,6 +193,6 @@ for qi in 1:5
                 #plot
                 #plot(iteration_array, loss_array, xlabel="iteration", ylabel="PINN SSE loss")
                 #plot(iteration_array, loss_array./(Ndata+2), xlabel="iteration", ylabel="PINN MSE loss")
-                #plot(x, [U1_star,exact[:,idx_t1]], labels=["predicted soln at final time" "exact solution"],  xlabel="x",ylabel="soln",title="at final time $finaltime")
+                plot(x, [U1_star,exact[:,21]], labels=["predicted soln at final time" "exact solution"],  xlabel="x",ylabel="soln",title="at final time $finaltime")
         end
 end
