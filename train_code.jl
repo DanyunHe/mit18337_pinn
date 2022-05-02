@@ -95,7 +95,7 @@ function loss()
         #loop through N data points at time tn, and calculate and add up losses
         for i in 1:Ndata  #time n is t[idx_t0]
                 #fill an array of length p+1 with value of exact soln at time n
-                exact_tn_array=fill(data_tn_x[i], q+1)
+                exact_tn_array=fill(data_tn_u[i], q+1)
                 total_loss=total_loss+sum(abs2,NN_U0([data_tn_x[i]]).-exact_tn_array)
         end
 
