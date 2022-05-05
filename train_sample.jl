@@ -10,13 +10,13 @@ using LinearAlgebra
 using Plots
 using BSON:@save
 
-
 using DiffEqFlux
 using Optim
 
 using Zygote
 using FluxOptTools
 using Statistics
+using Distributions
 
 using Printf
 
@@ -112,9 +112,9 @@ function loss()
         return total_loss
 end
 
-# sample_weight=rand(Ndata)
-# sample_weight/=sum(sample_weight)
-# sample_data=rand(Multinomial(Msample,sample_weight))
+sample_weight=rand(Ndata)
+sample_weight/=sum(sample_weight)
+sample_data=rand(Multinomial(Msample,sample_weight))
 
 function sample_loss()
         sample_total_loss=0
@@ -153,6 +153,7 @@ open("$(folder_name)/PINN_iter_loss_MSE.txt", "a") do file
 end
 
 training_time=@elapsed begin
+p=Flux.params(NN)
 Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
 for iteri in 1:number_big_step
         Zygote.refresh()
