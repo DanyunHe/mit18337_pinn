@@ -48,10 +48,8 @@ read_data_tn_x=x
 total_data_size=size(read_data_tn_u)[1] #value is 256
 #number of data point Ndata that we will sample
 Ndata=250
-#number of sampling data in a minibatch
-Msample=50
 #output folder name 
-folder_name=@sprintf("./sample_result/out_%d",Ndata)
+folder_name=@sprintf("./result/out_%d",Ndata)
 mkpath(folder_name)
 #the corresponding location x index of random uniform sampled data at time t0
 sample_data_location_index = sample(1:total_data_size, Ndata, replace = false)
@@ -112,22 +110,6 @@ function loss()
         return total_loss
 end
 
-# sample_weight=rand(Ndata)
-# sample_weight/=sum(sample_weight)
-# sample_data=rand(Multinomial(Msample,sample_weight))
-
-function sample_loss()
-        sample_total_loss=0
-
-        for i in 1:Ndata
-                temp=sum(abs2,NN_U0([data_tn_x[i]]).-data_tn_u[i])
-                sample_total_loss+=sample_data[i]*temp/sample_weight[i]
-        end
-        sample_total_loss=sample_total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
-
-        return sample_total_loss
-
-end
 
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
 #total number of iterations of training: 20000
@@ -153,23 +135,15 @@ open("$(folder_name)/PINN_iter_loss_MSE.txt", "a") do file
 end
 
 training_time=@elapsed begin
-Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM())
 for iteri in 1:number_big_step
         Zygote.refresh()
         p=Flux.params(NN)
 
-        for i in 1:Ndata
-                global sample_weight[i]=sum(abs2,NN_U0([data_tn_x[i]]).-data_tn_u[i])
-        end
-        global sample_weight/=sum(sample_weight)
-        global sample_data=rand(Multinomial(Msample,sample_weight))
-        # Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM())
-
         #the first 100 iterations, use ADAM() to train the model
         if iteri<10
-                Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
+                Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
         else #then, use BFGS() to train the model
-                lossfun, gradfun, fg!, p0 = optfuns(sample_loss, p)
+                lossfun, gradfun, fg!, p0 = optfuns(loss, p)
                 res = Optim.optimize(Optim.only_fg!(fg!), p0, BFGS(), Optim.Options(iterations=iterN))
         end
 
@@ -200,14 +174,18 @@ for i in 1:total_data_size
         U1_star[i]=NN_U1([x[i]])[q+1]
 end
 
-#Error calculation
-using LinearAlgebra
+#Error calculation of predicted solution at time t(n+1)
 finaltime=t[idx_t1]
 error=norm(U1_star.-exact[:,idx_t1])/norm(exact[:,idx_t1])
-println("Final time $finaltime relative L2 error $error")
+println("Final time $finaltime relative L2 error $error training time $training_time" )
+#save error to file
+open("$(folder_name)/PINN_error.txt", "a") do file
+    println(file, "$error $training_time ")
+    flush(file)
+end
+
 
 #plot
-using Plots
-# plot(iteration_array, loss_array, xlabel="iteration", ylabel="PINN SSE loss")
-# plot(iteration_array, loss_array./(Ndata+2), xlabel="iteration", ylabel="PINN MSE loss")
+plot(iteration_array, loss_array, xlabel="iteration", ylabel="PINN SSE loss")
+plot(iteration_array, loss_array./(Ndata+2), xlabel="iteration", ylabel="PINN MSE loss")
 plot(x, [U1_star,exact[:,idx_t1]], labels=["predicted soln at final time" "exact solution"],  xlabel="x",ylabel="soln",title="at final time $finaltime")

@@ -155,12 +155,13 @@ for neuron_i in 1:1
         append!(MSE_array,MSE_0)
         append!(iteration_array,0)
 
+        #=
         @save "output_tzy/model/PINN_NN_model_$(n_neuron)_$(n_layer)_tzy" NN
         open("output_tzy/loss/PINN_iter_loss_MSE_$(n_neuron)_$(n_layer)_tzy.txt", "a") do file
             println(file, "0 $current_loss_0 $MSE_0 ")
             flush(file)
         end
-
+=#
 
         for iteri in 1:number_big_step
             Zygote.refresh()
@@ -176,7 +177,7 @@ for neuron_i in 1:1
 
             #save model parameters
             total_iteration_i=iteri*iterN
-            @save "output_tzy/model/PINN_NN_model_$(n_neuron)_$(n_layer)_$(total_iteration_i)_tzy" NN
+            # @save "output_tzy/model/PINN_NN_model_$(n_neuron)_$(n_layer)_$(total_iteration_i)_tzy" NN
 
             #compute and save loss function value, MSE value
             current_loss_i=loss()
@@ -184,11 +185,12 @@ for neuron_i in 1:1
             append!(loss_array,current_loss_i)
             append!(MSE_array,MSE_i)
             append!(iteration_array,total_iteration_i)
+            println("iter ",iteri,"loss ",current_loss_i)
 
-            open("output_tzy/loss/PINN_iter_loss_MSE_$(n_neuron)_$(n_layer)_tzy.txt", "a") do file
-                println(file, "$total_iteration_i $current_loss_i $MSE_i ")
-                flush(file)
-            end
+            # open("output_tzy/loss/PINN_iter_loss_MSE_$(n_neuron)_$(n_layer)_tzy.txt", "a") do file
+            #     println(file, "$total_iteration_i $current_loss_i $MSE_i ")
+            #     flush(file)
+            # end
         end
 
         #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
@@ -202,10 +204,10 @@ for neuron_i in 1:1
         error=norm(U1_star.-exact[:,idx_t1])/norm(exact[:,idx_t1])
         println("Final time $finaltime relative L2 error $error")
         #save error to file
-        open("output_tzy/PINN_error_vary_nneuron_nlayer_tzy.txt", "a") do file
-            println(file, "$n_neuron $n_layer $error ")
-            flush(file)
-        end
+        # open("output_tzy/PINN_error_vary_nneuron_nlayer_tzy.txt", "a") do file
+        #     println(file, "$n_neuron $n_layer $error ")
+        #     flush(file)
+        # end
 
         #plot
         #plot(iteration_array, loss_array, xlabel="iteration", ylabel="PINN SSE loss")
