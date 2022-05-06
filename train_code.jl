@@ -102,7 +102,7 @@ function loss()
         end
 
         #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
-        total_loss = total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
+        total_loss = total_loss+sum(abs2,NN_U1([-1.]))+sum(abs2,NN_U1([1.]))
         return total_loss
 end
 
