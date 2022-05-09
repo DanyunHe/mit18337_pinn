@@ -21,7 +21,6 @@ using Statistics
 
 # read data
 data=matread("Data/burgers_shock.mat");
-#data=matread("./Data/burgers_shock.mat")
 t=data["t"]  #length 100
 x=data["x"]  #length 256
 exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
@@ -30,12 +29,12 @@ exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
 #number of stages
 q = 100
 #dt
-dt=0.4
+dt=0.2
 # list of number of neurons 
-neuron_list = [50]
+neuron_list = [10,25,50]
 
 # list of number of hidden layers
-layer_list = [1]
+layer_list = [1,2,3]
 
 #boundaries in x
 lb=[-1.]; ub=[1.];
@@ -73,11 +72,10 @@ end
 
 total_iteration=10000 #10000
 iterN=100
-# number_big_step=total_iteration/iterN
-number_big_step=100
+number_big_step=200
 
-for neuron_i in 1:1
-    for layer_i in 1:1
+for neuron_i in 1:3
+    for layer_i in 1:3
         # number of neuron
         n_neuron = neuron_list[neuron_i]
         # number of hidden layers
@@ -88,7 +86,7 @@ for neuron_i in 1:1
             append!(layers, n_neuron)
         end
         append!(layers, q+1)
-        print(layers)
+
         #Nueral Net of solutions at q stages and at time n+1, LHS of eqn 7
         #input: x vector of length Ndata, output: solutions at locations x.
         if layer_list[layer_i] ==1
@@ -110,7 +108,7 @@ for neuron_i in 1:1
         end
 
         # @load "output_tzy/model/PINN_NN_model_50_1_1000_tzy" NN
-        print(NN)
+
         function NN_U1(x)
             U1_pred = NN(x)
             return U1_pred # q*1
@@ -137,7 +135,7 @@ for neuron_i in 1:1
             end
 
             #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
-            total_loss = total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
+            total_loss = total_loss+sum(abs2,NN_U1([-1.]))+sum(abs2,NN_U1([1.]))
             return total_loss
         end
 
@@ -155,20 +153,19 @@ for neuron_i in 1:1
         append!(MSE_array,MSE_0)
         append!(iteration_array,0)
 
-        #=
+
         @save "output_tzy/model/PINN_NN_model_$(n_neuron)_$(n_layer)_tzy" NN
         open("output_tzy/loss/PINN_iter_loss_MSE_$(n_neuron)_$(n_layer)_tzy.txt", "a") do file
             println(file, "0 $current_loss_0 $MSE_0 ")
             flush(file)
         end
-=#
-
+    
         for iteri in 1:number_big_step
             Zygote.refresh()
             p=Flux.params(NN)
 
             #the first 100*50 iterations, use ADAM() to train the model
-            if iteri <= 10
+            if iteri < 150
                 Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
             else #then, use BFGS() to train the model
                 lossfun, gradfun, fg!, p0 = optfuns(loss, p)
@@ -187,10 +184,12 @@ for neuron_i in 1:1
             append!(iteration_array,total_iteration_i)
             println("iter ",iteri,"loss ",current_loss_i)
 
-            # open("output_tzy/loss/PINN_iter_loss_MSE_$(n_neuron)_$(n_layer)_tzy.txt", "a") do file
-            #     println(file, "$total_iteration_i $current_loss_i $MSE_i ")
-            #     flush(file)
-            # end
+            # println("iter ", iteri, "loss ",current_loss_i)
+
+            open("output_tzy/loss/PINN_iter_loss_MSE_$(n_neuron)_$(n_layer)_tzy.txt", "a") do file
+                println(file, "$total_iteration_i $current_loss_i $MSE_i ")
+                flush(file)
+            end
         end
 
         #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
@@ -209,9 +208,5 @@ for neuron_i in 1:1
         #     flush(file)
         # end
 
-        #plot
-        #plot(iteration_array, loss_array, xlabel="iteration", ylabel="PINN SSE loss")
-        #plot(iteration_array, loss_array./(Ndata+2), xlabel="iteration", ylabel="PINN MSE loss")
-        #plot(x, [U1_star,exact[:,idx_t1]], labels=["predicted soln at final time" "exact solution"],  xlabel="x",ylabel="soln",title="at final time $finaltime")
     end
 end
