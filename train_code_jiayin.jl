@@ -20,8 +20,8 @@ using FluxOptTools
 using Statistics
 
 # read data
-data=matread("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/Data/burgers_shock.mat")
-#data=matread("./Data/burgers_shock.mat")
+# data=matread("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/Data/burgers_shock.mat")
+data=matread("./Data/burgers_shock.mat")
 t=data["t"]  #length 100
 x=data["x"]  #length 256
 exact=data["usol"] #length 256x100, exact[:,1] is 256 data at time t[1]
@@ -56,7 +56,8 @@ for qi in 1:1
                 idx_t1=Int32(idx_t0+(idx_tf-idx_t0)/dt_steps)
 
                 # load IRK weights
-                temp=readdlm("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/IRK_weights/Butcher_IRK$q.txt");
+                # temp=readdlm("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/IRK_weights/Butcher_IRK$q.txt");
+                temp=readdlm("./IRK_weights/Butcher_IRK$q.txt");
                 IRK_weights=reshape(temp[1:q^2+q],(q,q+1))
                 IRK_weights=IRK_weights'
                 IRK_times=temp[q^2+q:size(temp)[1]]
@@ -88,7 +89,7 @@ for qi in 1:1
 
 
                 #test loading
-                @load "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_100_0.2_900.0_jiayin" NN
+                # @load "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_100_0.2_900.0_jiayin" NN
 
 
                 function NN_U1(x)
@@ -138,11 +139,11 @@ for qi in 1:1
                 append!(MSE_array,MSE_0)
                 append!(iteration_array,0)
 
-                @save "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_$(q)_$(dt)_0_jiayin" NN
-                open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_iter_loss_MSE_$(q)_$(dt)_jiayin.txt", "a") do file
-                    println(file, "0 $current_loss_0 $MSE_0 ")
-                    flush(file)
-                end
+                # @save "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_$(q)_$(dt)_0_jiayin" NN
+                # open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_iter_loss_MSE_$(q)_$(dt)_jiayin.txt", "a") do file
+                #     println(file, "0 $current_loss_0 $MSE_0 ")
+                #     flush(file)
+                # end
 
 
                 for iteri in 10:number_big_step #1:number_big_step
@@ -159,7 +160,7 @@ for qi in 1:1
 
                         #save model parameters
                         total_iteration_i=iteri*iterN
-                        @save "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_$(q)_$(dt)_$(total_iteration_i)_jiayin" NN
+                        # @save "C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_NN_model_$(q)_$(dt)_$(total_iteration_i)_jiayin" NN
 
                         #compute and save loss function value, MSE value
                         current_loss_i=loss()
@@ -167,11 +168,12 @@ for qi in 1:1
                         append!(loss_array,current_loss_i)
                         append!(MSE_array,MSE_i)
                         append!(iteration_array,total_iteration_i)
+                        println("iter ",iteri," loss ",current_loss_i)
 
-                        open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_iter_loss_MSE_$(q)_$(dt)_jiayin.txt", "a") do file
-                            println(file, "$total_iteration_i $current_loss_i $MSE_i ")
-                            flush(file)
-                        end
+                        # open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_iter_loss_MSE_$(q)_$(dt)_jiayin.txt", "a") do file
+                        #     println(file, "$total_iteration_i $current_loss_i $MSE_i ")
+                        #     flush(file)
+                        # end
                 end
 
                 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
@@ -185,10 +187,10 @@ for qi in 1:1
                 error=norm(U1_star.-exact[:,idx_t1])/norm(exact[:,idx_t1])
                 println("Final time $finaltime relative L2 error $error")
                 #save error to file
-                open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_error_vary_q_dt_jiayin.txt", "a") do file
-                    println(file, "$q $dt $error ")
-                    flush(file)
-                end
+                # open("C:/Users/Jiayin/Documents/GitHub/mit18337_pinn/output_jiayin/PINN_error_vary_q_dt_jiayin.txt", "a") do file
+                #     println(file, "$q $dt $error ")
+                #     flush(file)
+                # end
 
                 #plot
                 #plot(iteration_array, loss_array, xlabel="iteration", ylabel="PINN SSE loss")
