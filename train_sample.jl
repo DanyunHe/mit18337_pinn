@@ -49,9 +49,9 @@ total_data_size=size(read_data_tn_u)[1] #value is 256
 #number of data point Ndata that we will sample
 Ndata=250
 #number of sampling data in a minibatch
-Msample=50
+Msample=250
 #output folder name 
-folder_name=@sprintf("./sample_result/out_%d",Ndata)
+folder_name=@sprintf("./sample_result/out_%d_%d",Ndata,Msample)
 mkpath(folder_name)
 #the corresponding location x index of random uniform sampled data at time t0
 sample_data_location_index = sample(1:total_data_size, Ndata, replace = false)
@@ -108,7 +108,7 @@ function loss()
         end
 
         #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
-        total_loss = total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
+        total_loss = total_loss+sum(abs2,NN_U1([-1.]))+sum(abs2,NN_U1([1.]))
         return total_loss
 end
 
@@ -118,12 +118,18 @@ sample_data=rand(Multinomial(Msample,sample_weight))
 
 function sample_loss()
         sample_total_loss=0
+        # println("loss ",sample_weight[1:5])
+        # println("loss ",sample_data[1:5])
 
         for i in 1:Ndata
-                temp=sum(abs2,NN_U0([data_tn_x[i]]).-data_tn_u[i])
-                sample_total_loss+=sample_data[i]*temp/sample_weight[i]
+                if sample_data[i]>0
+                        temp=sum(abs2,NN_U0([data_tn_x[i]]).-data_tn_u[i])
+                        # sample_total_loss=sample_total_loss+sample_data[i]*temp/(Ndata*sample_weight[i])
+                        sample_total_loss=sample_total_loss+sample_data[i]*temp
+                end
         end
-        sample_total_loss=sample_total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
+        # sample_total_loss/=Ndata
+        sample_total_loss=sample_total_loss+sum(abs2,NN_U1([-1.]))+sum(abs2,NN_U1([1.]))
 
         return sample_total_loss
 
@@ -132,8 +138,8 @@ end
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
 #total number of iterations of training: 20000
 #Save model parameters and loss value and predicted solution error every 100 iterations
-total_iteration=10000
-iterN=100
+total_iteration=1000000
+iterN=1
 number_big_step=total_iteration/iterN
 
 loss_array = Vector{Float64}()
@@ -164,15 +170,19 @@ for iteri in 1:number_big_step
         end
         global sample_weight/=sum(sample_weight)
         global sample_data=rand(Multinomial(Msample,sample_weight))
+        # println("training sample weight ",sample_weight[1:5])
         # Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM())
 
         #the first 100 iterations, use ADAM() to train the model
-        if iteri<10
+
+        
+        if iteri<500000
                 Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
         else #then, use BFGS() to train the model
                 lossfun, gradfun, fg!, p0 = optfuns(sample_loss, p)
                 res = Optim.optimize(Optim.only_fg!(fg!), p0, BFGS(), Optim.Options(iterations=iterN))
         end
+        
 
         #save model parameters
         total_iteration_i=iteri*iterN
@@ -185,7 +195,7 @@ for iteri in 1:number_big_step
         append!(loss_array,current_loss_i)
         append!(MSE_array,MSE_i)
         append!(iteration_array,total_iteration_i)
-        println("iter ",iteri," loss ",current_loss_i)
+        if iteri%100==0 println("iter ",iteri," loss ",current_loss_i) end
 
         
         open("$(folder_name)/PINN_iter_loss_MSE.txt", "a") do file

@@ -106,7 +106,7 @@ function loss()
         end
 
         #add in boundary condition losses: u(x=-1)=0, u(x=1)=0
-        total_loss = total_loss+sum(abs2,NN_U0([-1.]))+sum(abs2,NN_U0([1.]))
+        total_loss = total_loss+sum(abs2,NN_U1([-1.]))+sum(abs2,NN_U1([1.]))
         return total_loss
 end
 
@@ -140,7 +140,7 @@ for iteri in 1:number_big_step
         p=Flux.params(NN)
 
         #the first 100 iterations, use ADAM() to train the model
-        if iteri<10
+        if iteri<50
                 Flux.train!(loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
         else #then, use BFGS() to train the model
                 lossfun, gradfun, fg!, p0 = optfuns(loss, p)
