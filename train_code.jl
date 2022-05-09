@@ -8,7 +8,7 @@ using Flux
 using ForwardDiff
 using LinearAlgebra
 using Plots
-using BSON
+using BSON:@save
 
 
 using DiffEqFlux
@@ -124,13 +124,13 @@ append!(loss_array,current_loss_0)
 append!(MSE_array,MSE_0)
 append!(iteration_array,0)
 
-#=
+
 @save "./output_xx/PINN_NN_model_0" NN
 open("./output_xx/PINN_iter_loss_MSE.txt", "a") do file
     println(file, "0 $current_loss_0 $MSE_0 ")
     flush(file)
 end
-=#
+
 for iteri in 1:number_big_step
         Zygote.refresh()
         p=Flux.params(NN)
@@ -154,10 +154,11 @@ for iteri in 1:number_big_step
         append!(MSE_array,MSE_i)
         append!(iteration_array,total_iteration_i)
 
+        #=
         open("./output_xx/PINN_iter_loss_MSE.txt", "a") do file
             println(file, "$total_iteration_i $current_loss_i $MSE_i ")
             flush(file)
-        end
+        end=#
 end
 
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
