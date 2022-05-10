@@ -115,6 +115,7 @@ end
 sample_weight=rand(Ndata)
 sample_weight/=sum(sample_weight)
 sample_data=rand(Multinomial(Msample,sample_weight))
+total_sample_data=zeros(length(sample_data))
 
 function sample_loss()
         sample_total_loss=0
@@ -124,11 +125,10 @@ function sample_loss()
         for i in 1:Ndata
                 if sample_data[i]>0
                         temp=sum(abs2,NN_U0([data_tn_x[i]]).-data_tn_u[i])
-                        sample_total_loss=sample_total_loss+sample_data[i]*temp/(Ndata*Msample*sample_weight[i])
+                        sample_total_loss=sample_total_loss+sample_data[i]*temp/(Ndata*sample_weight[i])
                 end
         end
-        sample_total_loss=sample_total_loss
-        sample_total_loss=sample_total_loss+sum(abs2,NN_U1([-1.]))+sum(abs2,NN_U1([1.]))
+        sample_total_loss=(sample_total_loss+sum(abs2,NN_U1([-1.]))+sum(abs2,NN_U1([1.])))/(Msample+2)
 
         return sample_total_loss
 
@@ -137,7 +137,7 @@ end
 #train parameters in NN_U1 based on loss function, repeat the training iteration on the data points
 #total number of iterations of training: 20000
 #Save model parameters and loss value and predicted solution error every 100 iterations
-total_iteration=1000000
+total_iteration=100000
 iterN=1
 number_big_step=total_iteration/iterN
 
@@ -172,13 +172,14 @@ for iteri in 1:number_big_step
         global sample_weight=Zygote.dropgrad(sample_weight)
         global sample_data=rand(Multinomial(Msample,sample_weight))
         global sample_data=Zygote.dropgrad(sample_data)
+        global total_sample_data+=sample_data
         # println("training sample weight ",sample_weight[1:5])
         # Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM())
 
         #the first 100 iterations, use ADAM() to train the model
 
         
-        if iteri<100000
+        if iteri<10000
                 Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
         else #then, use BFGS() to train the model
                 lossfun, gradfun, fg!, p0 = optfuns(sample_loss, p)
@@ -207,17 +208,22 @@ for iteri in 1:number_big_step
 end
 end
 
+writedlm("$(folder_name)/PINN_sample_data.txt", total_sample_data)
 #prediciton of solution at time n+1 at location x=[x0,x1,x2,x3...]
 U1_star=Array{Float64}(undef, total_data_size)
 for i in 1:total_data_size
         U1_star[i]=NN_U1([x[i]])[q+1]
 end
 
-#Error calculation
-using LinearAlgebra
+#Error calculation of predicted solution at time t(n+1)
 finaltime=t[idx_t1]
 error=norm(U1_star.-exact[:,idx_t1])/norm(exact[:,idx_t1])
-println("Final time $finaltime relative L2 error $error")
+println("Final time $finaltime relative L2 error $error training time $training_time" )
+#save error to file
+open("$(folder_name)/PINN_error.txt", "a") do file
+    println(file, "$error $training_time ")
+    flush(file)
+end
 
 #plot
 using Plots
