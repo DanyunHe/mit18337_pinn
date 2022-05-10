@@ -14,7 +14,7 @@ for i in 1:N
     total_err[i]=data[1]
     total_time[i]=data[2]
     temp=readdlm("$fn/out_$size/PINN_iter_loss_MSE.txt");
-    total_loss[:,i]=temp[1:101,3]
+    total_loss[:,i]=temp[1:101,3]/sample_size[i]
     total_iter[:,i]=temp[1:101,1]
 end
 

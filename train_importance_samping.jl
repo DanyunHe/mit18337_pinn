@@ -49,7 +49,7 @@ total_data_size=size(read_data_tn_u)[1] #value is 256
 #number of data point Ndata that we will sample
 Ndata=250
 #number of sampling data in a minibatch
-Msample=250
+Msample=100
 #output folder name 
 folder_name=@sprintf("./sample_result/out_%d_%d",Ndata,Msample)
 mkpath(folder_name)
@@ -124,11 +124,10 @@ function sample_loss()
         for i in 1:Ndata
                 if sample_data[i]>0
                         temp=sum(abs2,NN_U0([data_tn_x[i]]).-data_tn_u[i])
-                        # sample_total_loss=sample_total_loss+sample_data[i]*temp/(Ndata*sample_weight[i])
-                        sample_total_loss=sample_total_loss+sample_data[i]*temp
+                        sample_total_loss=sample_total_loss+sample_data[i]*temp/(Ndata*Msample*sample_weight[i])
                 end
         end
-        # sample_total_loss/=Ndata
+        sample_total_loss=sample_total_loss
         sample_total_loss=sample_total_loss+sum(abs2,NN_U1([-1.]))+sum(abs2,NN_U1([1.]))
 
         return sample_total_loss
@@ -165,18 +164,21 @@ for iteri in 1:number_big_step
         Zygote.refresh()
         p=Flux.params(NN)
 
+        # Calculate weights for important sampling metric
         for i in 1:Ndata
                 global sample_weight[i]=sum(abs2,NN_U0([data_tn_x[i]]).-data_tn_u[i])
         end
         global sample_weight/=sum(sample_weight)
+        global sample_weight=Zygote.dropgrad(sample_weight)
         global sample_data=rand(Multinomial(Msample,sample_weight))
+        global sample_data=Zygote.dropgrad(sample_data)
         # println("training sample weight ",sample_weight[1:5])
         # Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM())
 
         #the first 100 iterations, use ADAM() to train the model
 
         
-        if iteri<500000
+        if iteri<100000
                 Flux.train!(sample_loss,p,Iterators.repeated((), iterN), ADAM()) #train iterN=100 times
         else #then, use BFGS() to train the model
                 lossfun, gradfun, fg!, p0 = optfuns(sample_loss, p)
