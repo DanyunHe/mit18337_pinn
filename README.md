@@ -1,6 +1,6 @@
-# MIT 18.337 final project 
+# Exploration of a discrete-time physices informed neural network
 
-## Exploration of a discrete-time physices informed neural network
+## MIT18.337 Final project by Jiayin Lu, Ziye Tao, and Danyun He
 
 This project explores the physics-informed neural networks. In particular, we use the implicit Runge-Kutta time stepping schemes with unlimited number of stages to solve one-dimensional Burger’s Equation. The neural network is implemented in Julia and we vary different parameters including number of time-step size, number of stages in Runge-Kutta and different neural network structures and discuss their performance in final prediction. We also investigate different sampling strategies for more efficient training. 
 
